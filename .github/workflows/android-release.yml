@@ -41,16 +41,15 @@ jobs:
           fi
           npx cap sync android
 
-      - name: Configure Android Permissions for Closed-App Alarms, Vibrate & Exact Screen Alignment
+      - name: Inject Native Android AlarmManager, RingtoneManager & Closed-App BroadcastReceivers
         run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i 's/<\/manifest>/  <uses-permission android:name="android.permission.VIBRATE" \/>\n  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" \/>\n  <uses-permission android:name="android.permission.WAKE_LOCK" \/>\n  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" \/>\n  <uses-permission android:name="android.permission.USE_EXACT_ALARM" \/>\n  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" \/>\n  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" \/>\n<\/manifest>/' "$MANIFEST"
-          fi
-          STYLES="android/app/src/main/res/values/styles.xml"
-          if [ -f "$STYLES" ]; then
-            sed -i 's/<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">/<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">\n        <item name="android:fitsSystemWindows">true<\/item>\n        <item name="android:statusBarColor">#059669<\/item>\n        <item name="android:navigationBarColor">#ffffff<\/item>/' "$STYLES"
-          fi
+          JAVA_DIR="android/app/src/main/java/com/tiryaq/alwalid/app"
+          mkdir -p "$JAVA_DIR"
+          cp android-native/MainActivity.java "$JAVA_DIR/MainActivity.java"
+          cp android-native/TiryaqNativeBridge.java "$JAVA_DIR/TiryaqNativeBridge.java"
+          cp android-native/TiryaqAlarmReceiver.java "$JAVA_DIR/TiryaqAlarmReceiver.java"
+          cp android-native/TiryaqBootReceiver.java "$JAVA_DIR/TiryaqBootReceiver.java"
+          node android-native/patch-manifest.mjs
 
       - name: Build Installable Android APK with Gradle
         working-directory: ./android
@@ -76,11 +75,10 @@ jobs:
           body: |
             ## 📱 تطبيق ترياق الوالد للأندرويد (الإصدار المحدث v1.0.${{ github.run_number }})
             
-            تم بناء حزمة الأندرويد المحدثة (`tiryaq-alwalid-android.apk`) بنجاح:
-            - إزالة كافة نصوص وتعليمات التثبيت من واجهة التطبيق ليكون نظيفاً بالكامل.
-            - دعم إرسال الإشعارات القوية تلقائياً حتى والتطبيق مغلق تماماً عبر نظام إنذار أندرويد (`AlarmManager` + `LocalNotifications`).
-            - إمكانية اختيار أي رنة أو ملف صوتي من الهاتف مباشرة ليصدح بأعلى صوت عند التنبيه.
-            - ضبط محاذاة أبعاد شاشة الهاتف وشريط الحالة العلوي والسفلي بدقة.
+            تم بناء حزمة الأندرويد المحدثة (`tiryaq-alwalid-android.apk`) بنجاح مع التحديثات الحرجة:
+            - **إرسال الإشعارات والرنين حتى والتطبيق ميت ومغلق تماماً لأيام**: عبر محرك `AlarmManager.setAlarmClock` الأصلي في أندرويد ومستقبل `TiryaqAlarmReceiver` و `TiryaqBootReceiver` الذي يوقظ الهاتف في الموعد المحدد بالضبط.
+            - **اختيار النغمة من نغمات ومنبهات الهاتف الرسمية المدعومة (`RingtoneManager`)**: يدعم اختيار أي نغمة رنين أو منبه مدمج في الهاتف وتشغيله عبر مسار صوت المنبهات (`USAGE_ALARM` + `FLAG_INSISTENT`).
+            - **زر تجربة الإشعار والتطبيق مغلق تماماً (بعد 10 ثوانٍ)**: يمكنك الضغط على زر الاختبار ثم إغلاق التطبيق ومسحه من الخلفية للتأكد بنفسك من وصول الإشعار ورنين الهاتف بالنغمة التي اخترتها.
             
             ### 📥 رابط التحميل المباشر للتثبيت على الهاتف:
             اضغط على ملف **`tiryaq-alwalid-android.apk`** في قسم **Assets** بالأسفل لتحميله وتثبيته مباشرة على الهاتف.

@@ -17,11 +17,12 @@ import {
   checkNotificationPermissionState,
   ensureAndroidNotificationChannel,
   getAudioContext,
-  loadCustomPhoneRingtone,
+  getSelectedSystemRingtoneInfo,
   markUserInteraction,
   playSuccessChime,
   requestAllNotificationPermissions,
   scheduleBackgroundMedicationAlarms,
+  scheduleClosedAppTestNotification,
   startContinuousSoundLoop,
   stopContinuousSoundLoop,
   triggerStrongAndroidNotification,
@@ -65,6 +66,7 @@ export default function App() {
   // Alarm & Notification state
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [isTestAlarmActive, setIsTestAlarmActive] = useState(false);
+  const [closedTestCountdown, setClosedTestCountdown] = useState<number | null>(null);
   const [alarmBannerText, setAlarmBannerText] = useState(
     'بحساب الأيام التلقائي، وصلت بعض الأدوية إلى الحد الأدنى وتتطلب الشراء الفوري من الصيدلية.'
   );
@@ -156,9 +158,22 @@ export default function App() {
     scheduleBackgroundMedicationAlarms(medicines);
   }, [medicines]);
 
-  // Initial permission check, custom ringtone preload, and background visibility sync
+  // Countdown timer for closed-app test alarm
   useEffect(() => {
-    loadCustomPhoneRingtone();
+    if (closedTestCountdown === null) return;
+    if (closedTestCountdown <= 0) {
+      setClosedTestCountdown(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setClosedTestCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [closedTestCountdown]);
+
+  // Initial permission check, system ringtone info sync, and background visibility sync
+  useEffect(() => {
+    getSelectedSystemRingtoneInfo();
     ensureAndroidNotificationChannel();
     checkNotificationPermissionState().then((state) => {
       setNotifPerm(state);
@@ -203,6 +218,23 @@ export default function App() {
     } else {
       setIsTestAlarmActive(true);
       startContinuousAlarm('هذه تجربة لفحص نغمة الرنين المستمر والتأكد من وضوح الصوت.');
+    }
+  };
+
+  const handleQuickClosedAppTest = async () => {
+    markUserInteraction();
+    stopContinuousSoundLoop();
+    setIsAlarmRinging(false);
+    setIsTestAlarmActive(false);
+    const scheduled = await scheduleClosedAppTestNotification(10, alarmBannerText);
+    if (scheduled) {
+      setClosedTestCountdown(10);
+      showToast(
+        'تم ضبط منبه الاختبار بعد 10 ثوانٍ! أغلق التطبيق تماماً الآن للتجربة.',
+        'success'
+      );
+    } else {
+      showToast('يرجى السماح بصلاحية الإشعارات أولاً لتجربة الإشعار', 'warning');
     }
   };
 
@@ -375,6 +407,17 @@ export default function App() {
         </div>
       )}
 
+      {/* شريط العد التنازلي لاختبار وصول الإشعار والتطبيق مغلق تماماً */}
+      {closedTestCountdown !== null && (
+        <div
+          id="closedTestBanner"
+          className="bg-emerald-700 text-white shadow-lg px-3.5 py-2.5 sticky top-0 z-50 text-center text-xs sm:text-sm font-black animate-pulse"
+        >
+          ⏱️ اختبار الإشعار والتطبيق ميت/مغلق: اخرج من التطبيق أو امسحه من الخلفية الآن! سيرن الهاتف
+          بنغمة هاتفك المختارة بعد ({closedTestCountdown}) ثانية...
+        </div>
+      )}
+
       {/* ترويسة الصفحة وقائمة التحكم بمحاذات متوافقة تماماً مع شاشة الهاتف */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md bg-white/95">
         <div className="max-w-7xl mx-auto px-3.5 sm:px-6 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
@@ -412,12 +455,12 @@ export default function App() {
           </div>
 
           {/* أزرار الإجراءات السريعة بمحاذات متناسقة للهاتف والكمبيوتر */}
-          <div className="flex items-center justify-between lg:justify-end gap-1.5 sm:gap-2 w-full lg:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between lg:justify-end gap-1.5 sm:gap-2 w-full lg:w-auto">
             <button
               type="button"
               id="testAlarmBtn"
               onClick={toggleTestAlarm}
-              className={`flex-1 lg:flex-initial justify-center px-2 sm:px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold border transition flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+              className={`flex-1 lg:flex-initial justify-center px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold border transition flex items-center gap-1 whitespace-nowrap active:scale-95 ${
                 isTestAlarmActive
                   ? 'bg-rose-100 text-rose-700 border-rose-300'
                   : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
@@ -440,10 +483,20 @@ export default function App() {
               type="button"
               id="ringtonePickerBtn"
               onClick={() => setIsRingtoneModalOpen(true)}
-              className="flex-1 lg:flex-initial justify-center px-2 sm:px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition flex items-center gap-1.5 whitespace-nowrap active:scale-95"
+              className="flex-1 lg:flex-initial justify-center px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition flex items-center gap-1 whitespace-nowrap active:scale-95"
             >
               <i className="fa-solid fa-music text-emerald-600"></i>
               <span>نغمة الهاتف</span>
+            </button>
+
+            <button
+              type="button"
+              id="closedAppTestBtn"
+              onClick={handleQuickClosedAppTest}
+              className="flex-1 lg:flex-initial justify-center px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 transition flex items-center gap-1 whitespace-nowrap active:scale-95"
+            >
+              <i className="fa-solid fa-clock text-rose-600"></i>
+              <span>اختبار وهو مغلق</span>
             </button>
 
             {notifPerm !== 'unsupported' && (
@@ -451,7 +504,7 @@ export default function App() {
                 type="button"
                 id="notifPermBtn"
                 onClick={requestNotificationPermission}
-                className={`flex-1 lg:flex-initial justify-center px-2 sm:px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold border transition flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+                className={`flex-1 lg:flex-initial justify-center px-2 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold border transition flex items-center gap-1 whitespace-nowrap active:scale-95 ${
                   notifPerm === 'granted'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : notifPerm === 'denied'
@@ -717,6 +770,7 @@ export default function App() {
         isOpen={isRingtoneModalOpen}
         onClose={() => setIsRingtoneModalOpen(false)}
         onShowToast={showToast}
+        urgentSummary={alarmBannerText}
       />
 
       {/* رسالة تنبيه منبثقة عائمة (Toast Message) */}
