@@ -1,0 +1,89 @@
+name: Build Android APK & Create GitHub Release
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java JDK 21 (Required for Capacitor Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Dependencies & Capacitor Android
+        run: |
+          npm install --legacy-peer-deps
+          npm install @capacitor/core @capacitor/cli @capacitor/android --save-dev --legacy-peer-deps
+
+      - name: Build Web Application Assets
+        run: npm run build
+
+      - name: Initialize & Sync Capacitor Android Platform
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Configure Android Permissions for Vibrate, WakeLock & Exact Alarms
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i 's/<\/manifest>/  <uses-permission android:name="android.permission.VIBRATE" \/>\n  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" \/>\n  <uses-permission android:name="android.permission.WAKE_LOCK" \/>\n  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" \/>\n  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" \/>\n<\/manifest>/' "$MANIFEST"
+          fi
+
+      - name: Build Installable Android APK with Gradle
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Rename APK for Direct Phone Installation
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk ./tiryaq-alwalid-android.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiryaq-alwalid-android-apk
+          path: ./tiryaq-alwalid-android.apk
+
+      - name: Create GitHub Release with Direct APK Download Link
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "ترياق الوالد - تطبيق أندرويد جاهز للتثبيت (v1.0.${{ github.run_number }})"
+          body: |
+            ## 📱 تطبيق ترياق الوالد للأندرويد (APK جاهز للتثبيت)
+            
+            تم بناء حزمة الأندرويد (`tiryaq-alwalid-android.apk`) بنجاح بكامل المميزات:
+            - حساب تلقائي يومي 100% لجرعات الوالد وموعد النفاد.
+            - رنين صوتي متواصل وقوي مع اهتزاز الهاتف وإشعارات النظام العاجلة.
+            - يعمل بالكامل بدون إنترنت (Offline) ويحفظ كافة البيانات محلياً على الهاتف.
+            
+            ### 📥 رابط التحميل المباشر للتثبيت على الهاتف:
+            اضغط على ملف **`tiryaq-alwalid-android.apk`** في قسم **Assets** بالأسفل لتحميله وتثبيته مباشرة على الهاتف.
+          files: ./tiryaq-alwalid-android.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

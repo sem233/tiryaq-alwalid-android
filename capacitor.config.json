@@ -1,0 +1,16 @@
+{
+  "appId": "com.tiryaq.alwalid.app",
+  "appName": "ترياق الوالد",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#059669",
+      "sound": "beep.wav"
+    }
+  }
+}

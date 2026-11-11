@@ -1,0 +1,6 @@
+{
+  "name": "ترياق الوالد - منبه تجديد الأدوية والأندرويد",
+  "description": "تطبيق أندرويد وويب (PWA / Capacitor APK) للحساب التلقائي اليومي لجرعات الأدوية والتنبيه الصوتي القوي المسبق قبل نفاد الدواء.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

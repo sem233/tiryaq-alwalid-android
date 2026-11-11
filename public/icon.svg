@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <g transform="translate(106, 96)">
+    <!-- Bottle Cap -->
+    <rect x="65" y="0" width="170" height="44" rx="14" fill="#ffffff" />
+    <rect x="85" y="44" width="130" height="24" fill="#d1fae5" />
+    <!-- Bottle Body -->
+    <rect x="35" y="68" width="230" height="252" rx="34" fill="#ffffff" />
+    <!-- Medical Cross Badge -->
+    <circle cx="150" cy="194" r="72" fill="#ecfdf5" stroke="#10b981" stroke-width="8" />
+    <rect x="134" y="146" width="32" height="96" rx="8" fill="#059669" />
+    <rect x="102" y="178" width="96" height="32" rx="8" fill="#059669" />
+  </g>
+</svg>

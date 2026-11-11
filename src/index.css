@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Cairo', sans-serif;
+    background-color: #f8fafc;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@keyframes pulse-emergency {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+.pulse-urgent {
+  animation: pulse-emergency 1.5s infinite ease-in-out;
+}
+
+@media print {
+  header,
+  #alarmBanner,
+  #toast,
+  .filter-btn,
+  #testAlarmBtn,
+  #notifPermBtn,
+  .no-print,
+  button,
+  footer {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .shadow-sm,
+  .shadow-md,
+  .shadow-2xl {
+    box-shadow: none !important;
+  }
+  .border {
+    border-color: #cbd5e1 !important;
+  }
+}
