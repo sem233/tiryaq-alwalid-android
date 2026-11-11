@@ -66,10 +66,20 @@ export const AndroidGithubModal: React.FC<AndroidGithubModalProps> = ({
     if (!isOpen) return;
     fetch('/api/github/status')
       .then((r) => r.json())
-      .then((data: { hasOAuthConfig?: boolean; hasServerToken?: boolean }) => {
-        setHasOAuthConfig(Boolean(data.hasOAuthConfig));
-        setHasServerToken(Boolean(data.hasServerToken));
-      })
+      .then(
+        (data: {
+          hasOAuthConfig?: boolean;
+          hasServerToken?: boolean;
+          lastDeployedRepo?: DeployResult | null;
+        }) => {
+          setHasOAuthConfig(Boolean(data.hasOAuthConfig));
+          setHasServerToken(Boolean(data.hasServerToken));
+          if (data.lastDeployedRepo) {
+            setDeployResult(data.lastDeployedRepo);
+            localStorage.setItem('tiryaq_last_deploy', JSON.stringify(data.lastDeployedRepo));
+          }
+        }
+      )
       .catch(() => {});
   }, [isOpen]);
 
